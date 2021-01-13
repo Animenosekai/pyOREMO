@@ -1,29 +1,23 @@
-#import pyaudio
-import wave
-from os import getcwd
-from sys import argv
 from utils.exceptions import RecordingError
 
 ## macOS
-#from AVFoundation import AVAudioRecorder, AVAudioFormat, AVAudioChannelCount
-from AVFoundation import AVAudioRecorder
+from AVFoundation import AVAudioRecorder, AVAudioSession
 from Foundation import NSURL, NSDictionary, NSString
+from CoreAudio import kAudioFormatMPEG4AAC
 import objc
 
 class Recorder():
     """
     An object to record from the microphone on macOS
     """
-    def __init__(self, filepath, sample_rate=44100) -> None:
-        """
-        if '://' not in filepath:
-            if not filepath.startswith('/'):
-                filepath = getcwd() + '/' + filepath
-            filepath = 'file://' + filepath
-        url = NSURL.URLWithString_(filepath)
-        """
+    def __init__(self, filepath) -> None:
         url = NSURL.fileURLWithPath_(NSString.stringByExpandingTildeInPath(filepath))
-        audioDict = NSDictionary.dictionaryWithDictionary_({'AVFormatIDKey': 'kAudioFormatMPEG4AAC', 'AVSampleRateKey': sample_rate / 1000, 'AVNumberOfChannelsKey': 1 })
+        audioDict = NSDictionary.dictionaryWithDictionary_({'AVFormatIDKey': kAudioFormatMPEG4AAC, 'AVSampleRateKey': AVAudioSession.sharedInstance().sampleRate(), 'AVNumberOfChannelsKey': AVAudioSession.sharedInstance().inputNumberOfChannels() })
+        currentPermission = AVAudioSession.alloc().recordPermission()
+        if currentPermission in [1684369017, 1970168948]:
+            AVAudioSession.alloc().requestRecordPermission_(None)
+            if AVAudioSession.alloc().recordPermission() == 1684369017:
+                raise RecordingError("pyOREMO needs your authorization to record things")
         self._avaudiorecorder, error = AVAudioRecorder.alloc().initWithURL_settings_error_(url, audioDict, objc.nil)
         if self._avaudiorecorder is None:
             raise RecordingError("An error occured while creating the AVAudioRecorder object: " + str(error))
@@ -56,7 +50,12 @@ class Recorder():
         """
         return self._avaudiorecorder.isRecording()
 
-"""
+
+"""other systems
+import wave
+from os import getcwd
+from sys import argv
+import pyaudio
 
 def record(filepath, duration, playback=False, channels=1, chunk=1024, sample_rate=44100, format=pyaudio.paInt16):
     pyAudioObj = pyaudio.PyAudio()

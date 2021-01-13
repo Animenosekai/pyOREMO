@@ -16,8 +16,8 @@ class Reclist():
             self.file = TextFile(filepath)
             self.phonems = []
             for line in self.file:
-                line = str(line).replace("\n", "").replace(" ", "")
-                if line != "":
-                    self.phonems.append(line)
+                for word in str(line).replace("\n", "").split(" "):
+                    if word.replace(" ", "") != "":
+                        self.phonems.append(word.replace(" ", ""))
         else:
             raise FileNotFound(message="Reclist not found")
